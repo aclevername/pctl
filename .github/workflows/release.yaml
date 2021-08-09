@@ -1,8 +1,11 @@
 name: Release
 
 on:
-  push:
-    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version, e.g. "v0.1.0"'
+        required: true
 
 env:
   IMAGE: pctl
@@ -25,20 +28,20 @@ jobs:
         uses: docker/setup-buildx-action@v1
         with:
           buildkitd-flags: "--debug"
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: weaveworkspctlci
-          password: ${{ secrets.DOCKERHUB_PASSWORD_WEAVEWORKSPCTLCI }}
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v1
+      #   with:
+      #     username: weaveworkspctlci
+      #     password: ${{ secrets.DOCKERHUB_PASSWORD_WEAVEWORKSPCTLCI }}
       - name: Prepare
         id: prep
         run: |
-          VERSION=sha-${GITHUB_SHA::8}
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF/refs\/tags\//}
-          fi
           echo ::set-output name=BUILD_DATE::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          echo ::set-output name=VERSION::${VERSION}
+      - name: Tag
+        run: |
+          git tag ${{ github.event.inputs.version }}
+          git push origin ${{ github.event.inputs.version }}
+          exit 1
       - name: Publish multi-arch container image
         uses: docker/build-push-action@v2
         with:
@@ -48,29 +51,29 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           tags: |
-            docker.io/${{ env.ORG }}/${{ env.IMAGE }}:${{ steps.prep.outputs.VERSION }}
+            docker.io/${{ env.ORG }}/${{ env.IMAGE }}:${{ github.event.inputs.version }}
             docker.io/${{ env.ORG }}/${{ env.IMAGE }}:latest
           labels: |
             org.opencontainers.image.title=${{ github.event.repository.name }}
             org.opencontainers.image.description=${{ github.event.repository.description }}
             org.opencontainers.image.url=${{ github.event.repository.html_url }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ steps.prep.outputs.VERSION }}
+            org.opencontainers.image.version=${{ github.event.inputs.version }}
             org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
       - name: Check images
         run: |
-          docker buildx imagetools inspect docker.io/${{ env.ORG }}/${{ env.IMAGE }}:${{ steps.prep.outputs.VERSION }}
-          docker pull docker.io/${{ env.ORG }}/${{ env.IMAGE }}:${{ steps.prep.outputs.VERSION }}
+          docker buildx imagetools inspect docker.io/${{ env.ORG }}/${{ env.IMAGE }}:${{ github.event.inputs.version }}
+          docker pull docker.io/${{ env.ORG }}/${{ env.IMAGE }}:${{ github.event.inputs.version }}
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v1
         with:
           version: latest
-          args: release --release-notes=docs/release_notes/${{ steps.prep.outputs.VERSION }}.md --skip-validate
+          args: release --release-notes=docs/release_notes/${{ github.event.inputs.version }}.md --skip-validate
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Get release doc content
         id: vars
-        run: echo ::set-output name=release_notes::$(cat docs/release_notes/${{ steps.prep.outputs.VERSION }}.md)
+        run: echo ::set-output name=release_notes::$(cat docs/release_notes/${{ github.event.inputs.version }}.md)
       - name: Notify slack of new release
         uses: skarlso/slack-notification-action@28f5c1166e2fba7ed5a1d9ceaeb4f2c89a4e5bc5
         with:
