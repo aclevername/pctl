@@ -1,8 +1,7 @@
 name: Release
 
 on:
-  push:
-    tags: [ 'v*' ]
+  workflow_dispatch: {}
 
 env:
   IMAGE: pctl
@@ -25,20 +24,22 @@ jobs:
         uses: docker/setup-buildx-action@v1
         with:
           buildkitd-flags: "--debug"
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
-        with:
-          username: weaveworkspctlci
-          password: ${{ secrets.DOCKERHUB_PASSWORD_WEAVEWORKSPCTLCI }}
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v1
+      #   with:
+      #     username: weaveworkspctlci
+      #     password: ${{ secrets.DOCKERHUB_PASSWORD_WEAVEWORKSPCTLCI }}
       - name: Prepare
         id: prep
         run: |
-          VERSION=sha-${GITHUB_SHA::8}
-          if [[ $GITHUB_REF == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF/refs\/tags\//}
-          fi
+          VERSION=v$(go run pkg/version/generate/release_generate.go full-version)
           echo ::set-output name=BUILD_DATE::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           echo ::set-output name=VERSION::${VERSION}
+      - name: Tag
+        run: |
+          git tag ${{ steps.prep.outputs.VERSION }}
+          git push origin ${{ steps.prep.outputs.VERSION }}
+          exit 1
       - name: Publish multi-arch container image
         uses: docker/build-push-action@v2
         with:
