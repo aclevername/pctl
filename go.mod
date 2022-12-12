@@ -16,19 +16,19 @@ require (
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.14.0
+	github.com/onsi/gomega v1.23.0
 	github.com/otiai10/copy v1.6.0
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/weaveworks/profiles v0.1.0
 	gopkg.in/yaml.v2 v2.4.0
-	k8s.io/api v0.21.3
-	k8s.io/apimachinery v0.21.3
+	k8s.io/api v0.26.0
+	k8s.io/apimachinery v0.26.0
 	k8s.io/client-go v0.21.3
 	knative.dev/pkg v0.0.0-20210412173742-b51994e3b312
 	sigs.k8s.io/cli-utils v0.25.1-0.20210608181808-f3974341173a
 	sigs.k8s.io/controller-runtime v0.9.5
 	sigs.k8s.io/kustomize/api v0.8.11
-	sigs.k8s.io/yaml v1.2.0
+	sigs.k8s.io/yaml v1.3.0
 )
 
 // pin kustomize to v4.1.3
